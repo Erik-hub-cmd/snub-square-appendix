@@ -1,0 +1,46 @@
+name: run-scripts
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 1 * *"   # monthly, runs the long torus searches as well
+jobs:
+  quick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Run every script except the two long torus searches
+        run: python run_all.py --skip-long
+      - name: Regenerated data files are identical to the committed ones
+        run: git diff --exit-code -- artikel runs g4/TABELL_ALLA.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-quick
+          path: ci_logs/
+  long-tori:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [torus_sok_2x2, torus_sok_4x1]
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - run: python run_all.py --only-long ${{ matrix.case }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-${{ matrix.case }}
+          path: ci_logs/

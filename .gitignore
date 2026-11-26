@@ -1,0 +1,5 @@
+ci_logs/
+__pycache__/
+g4/loggar/*
+!g4/loggar/.gitkeep
+g4/separat/*.log
